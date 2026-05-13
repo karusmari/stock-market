@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../providers/stock_provider.dart';
+import '../providers/auth_provider.dart';
 
 class TradeDialogs {
   static void showBuyDialog(
@@ -15,7 +17,9 @@ class TradeDialogs {
       builder: (context) => StatefulBuilder(
         builder: (context, dialogSetState) {
           final totalCost = quantity * price;
-          final canAfford = stockProvider.balance >= totalCost;
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          final username = auth.currentUser ?? 'guest';
+          final canAfford = stockProvider.balanceFor(username) >= totalCost;
 
           return AlertDialog(
             title: const Text('Buy Stock'),
@@ -85,7 +89,7 @@ class TradeDialogs {
                   children: [
                     const Text('Available:'),
                     Text(
-                      '\$${stockProvider.balance.toStringAsFixed(2)}',
+                      '\$${stockProvider.balanceFor(username).toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -103,7 +107,7 @@ class TradeDialogs {
                 ),
                 onPressed: canAfford
                     ? () {
-                        stockProvider.buyStock(symbol, quantity);
+                        stockProvider.buyStockFor(username, symbol, quantity);
                         Navigator.pop(context);
                       }
                     : null,
@@ -131,6 +135,8 @@ class TradeDialogs {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, dialogSetState) {
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          final username = auth.currentUser ?? 'guest';
           final totalRevenue = quantity * price;
 
           return AlertDialog(
@@ -213,7 +219,7 @@ class TradeDialogs {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () {
-                  stockProvider.sellStock(symbol, quantity);
+                  stockProvider.sellStockFor(username, symbol, quantity);
                   Navigator.pop(context);
                 },
                 child: const Text('Sell'),

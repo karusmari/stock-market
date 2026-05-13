@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/stock_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/trade_dialogs.dart';
-import 'stock_detail_screen.dart';
-import 'wallet_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,198 +13,204 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentTabIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stock Market Simulator'),
         centerTitle: true,
-      ),
-      body: _currentTabIndex == 0 ? _buildStocksView() : const WalletScreen(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTabIndex,
-        onTap: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up),
-            label: 'Stocks',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.wallet),
+            tooltip: 'Wallet',
+            onPressed: () => Navigator.pushNamed(context, '/wallet'),
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Wallet'),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              auth.logout();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
         ],
       ),
+      body: _buildStocksView(),
     );
   }
 
   Widget _buildStocksView() {
-    return Consumer<StockProvider>(
-      builder: (context, stockProvider, child) {
-        final stockList = stockProvider.stocks.values.toList();
+    return RefreshIndicator(
+      onRefresh: () async {
+        // Trigger refresh of stock data
+        await Future.delayed(const Duration(seconds: 1));
+      },
+      child: Consumer<StockProvider>(
+        builder: (context, stockProvider, child) {
+          final auth = Provider.of<AuthProvider>(context);
+          final username = auth.currentUser ?? 'guest';
+          final stockList = stockProvider.stocks.values.toList();
 
-        if (stockList.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
+          if (stockList.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: stockList.length,
-          itemBuilder: (context, index) {
-            final stock = stockList[index];
-            final double currentPrice = stock.price;
-            final double previousPrice =
-                stockProvider.previousPrices[stock.symbol] ?? currentPrice;
-            final int ownedQuantity =
-                stockProvider.portfolio[stock.symbol] ?? 0;
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: stockList.length,
+            itemBuilder: (context, index) {
+              final stock = stockList[index];
+              final double currentPrice = stock.price;
+              final double previousPrice =
+                  stockProvider.previousPrices[stock.symbol] ?? currentPrice;
+              final int ownedQuantity =
+                  stockProvider.portfolioFor(username)[stock.symbol] ?? 0;
 
-            Color priceColor = Colors.white;
-            IconData trendIcon = Icons.remove;
-            if (currentPrice > previousPrice) {
-              priceColor = Colors.greenAccent;
-              trendIcon = Icons.trending_up;
-            } else if (currentPrice < previousPrice) {
-              priceColor = Colors.redAccent;
-              trendIcon = Icons.trending_down;
-            }
+              Color priceColor = Colors.white;
+              IconData trendIcon = Icons.remove;
+              if (currentPrice > previousPrice) {
+                priceColor = Colors.greenAccent;
+                trendIcon = Icons.trending_up;
+              } else if (currentPrice < previousPrice) {
+                priceColor = Colors.redAccent;
+                trendIcon = Icons.trending_down;
+              }
 
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        StockDetailScreen(symbol: stock.symbol),
-                  ),
-                );
-              },
-              child: Card(
-                color: Colors.grey[850],
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            stock.symbol,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(trendIcon, color: priceColor, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                ownedQuantity > 0
-                                    ? '$ownedQuantity shares'
-                                    : 'Not owned',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: ownedQuantity > 0
-                                      ? Colors.greenAccent
-                                      : Colors.grey,
-                                ),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/stock_detail',
+                    arguments: stock.symbol,
+                  );
+                },
+                child: Card(
+                  color: Colors.grey[850],
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              stock.symbol,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '\$${currentPrice.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: priceColor,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: ownedQuantity > 0
-                                    ? () => TradeDialogs.showSellDialog(
-                                        context,
-                                        stockProvider,
-                                        stock.symbol,
-                                        currentPrice,
-                                        ownedQuantity,
-                                      )
-                                    : null,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(trendIcon, color: priceColor, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  ownedQuantity > 0
+                                      ? '$ownedQuantity shares'
+                                      : 'Not owned',
+                                  style: TextStyle(
+                                    fontSize: 12,
                                     color: ownedQuantity > 0
-                                        ? Colors.redAccent
-                                        : Colors.grey[700],
-                                    borderRadius: BorderRadius.circular(4),
+                                        ? Colors.greenAccent
+                                        : Colors.grey,
                                   ),
-                                  child: Text(
-                                    'SELL',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '\$${currentPrice.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: priceColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: ownedQuantity > 0
+                                      ? () => TradeDialogs.showSellDialog(
+                                          context,
+                                          stockProvider,
+                                          stock.symbol,
+                                          currentPrice,
+                                          ownedQuantity,
+                                        )
+                                      : null,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
                                       color: ownedQuantity > 0
-                                          ? Colors.white
-                                          : Colors.grey[400],
+                                          ? Colors.redAccent
+                                          : Colors.grey[700],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'SELL',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: ownedQuantity > 0
+                                            ? Colors.white
+                                            : Colors.grey[400],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => TradeDialogs.showBuyDialog(
-                                  context,
-                                  stockProvider,
-                                  stock.symbol,
-                                  currentPrice,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => TradeDialogs.showBuyDialog(
+                                    context,
+                                    stockProvider,
+                                    stock.symbol,
+                                    currentPrice,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.greenAccent,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'BUY',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.greenAccent,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'BUY',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
