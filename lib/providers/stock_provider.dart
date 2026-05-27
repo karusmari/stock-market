@@ -71,8 +71,8 @@ class StockProvider with ChangeNotifier {
       _stocks[symbol] = Stock(
         symbol: symbol,
         price: 0.0,
-        currency: 'EUR', // LISATUD
-        lastUpdate: DateTime.now(), // LISATUD
+        currency: 'USD',
+        lastUpdate: DateTime.now(), 
       );
     }
     _startRealTimeUpdates();

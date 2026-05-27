@@ -20,6 +20,14 @@ class StockDetailScreen extends StatefulWidget {
 class _StockDetailScreenState extends State<StockDetailScreen> {
   List<HistoricalPoint> history = [];
   bool isLoading = true;
+  String selectedRange = '1Y';
+
+  static const Map<String, int> _rangeDays = {
+    '1M': 30,
+    '6M': 180,
+    '1Y': 365,
+    'ALL': 3650,
+  };
 
   @override
   void initState() {
@@ -29,7 +37,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
   Future<void> _loadHistory() async {
     try {
-      final data = await ApiService().fetchStockHistory(widget.symbol, days: 180);
+      final days = _rangeDays[selectedRange] ?? 365;
+      final data = await ApiService().fetchStockHistory(
+        widget.symbol,
+        days: days,
+      );
       if (mounted) {
         setState(() {
           history = data;
@@ -43,6 +55,15 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     }
   }
 
+  void _setRange(String range) {
+    if (range == selectedRange) return;
+    setState(() {
+      selectedRange = range;
+      isLoading = true;
+    });
+    _loadHistory();
+  }
+
   @override
   Widget build(BuildContext context) {
     final stockProvider = Provider.of<StockProvider>(context);
@@ -50,17 +71,31 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final currentPrice = currentStock?.price ?? 0.0;
     final auth = Provider.of<AuthProvider>(context);
     final username = auth.currentUser ?? 'guest';
-    final ownedQuantity = stockProvider.portfolioFor(username)[widget.symbol] ?? 0;
+    final ownedQuantity =
+        stockProvider.portfolioFor(username)[widget.symbol] ?? 0;
 
-    final closes = history.isNotEmpty ? history.map((e) => e.close).toList() : <double>[];
-    double lowestPrice = closes.isNotEmpty ? closes.reduce((a, b) => a < b ? a : b) : currentPrice;
-    double highestPrice = closes.isNotEmpty ? closes.reduce((a, b) => a > b ? a : b) : currentPrice;
+    final closes = history.isNotEmpty
+        ? history.map((e) => e.close).toList()
+        : <double>[];
+    double lowestPrice = closes.isNotEmpty
+        ? closes.reduce((a, b) => a < b ? a : b)
+        : currentPrice;
+    double highestPrice = closes.isNotEmpty
+        ? closes.reduce((a, b) => a > b ? a : b)
+        : currentPrice;
     double priceChange = closes.isNotEmpty ? currentPrice - closes.first : 0.0;
-    double percentageChange = closes.isNotEmpty && closes.first != 0 ? (priceChange / closes.first) * 100 : 0.0;
-    Color changeColor = priceChange >= 0 ? Colors.greenAccent : Colors.redAccent;
+    double percentageChange = closes.isNotEmpty && closes.first != 0
+        ? (priceChange / closes.first) * 100
+        : 0.0;
+    Color changeColor = priceChange >= 0
+        ? Colors.greenAccent
+        : Colors.redAccent;
 
     double minYVal = lowestPrice * 0.98;
     double maxYVal = highestPrice * 1.02;
+    final chartLabel = selectedRange == 'ALL'
+        ? 'All Available History'
+        : '$selectedRange Chart';
 
     return Scaffold(
       appBar: AppBar(title: Text('${widget.symbol} Detailid')),
@@ -70,37 +105,71 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  Text('\$${currentPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(
+                    '\$${currentPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('${priceChange >= 0 ? '+' : ''}\$${priceChange.toStringAsFixed(2)}',
-                          style: TextStyle(fontSize: 18, color: changeColor, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${priceChange >= 0 ? '+' : ''}\$${priceChange.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: changeColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Text('(${percentageChange >= 0 ? '+' : ''}${percentageChange.toStringAsFixed(2)}%)',
-                          style: TextStyle(fontSize: 18, color: changeColor)),
+                      Text(
+                        '(${percentageChange >= 0 ? '+' : ''}${percentageChange.toStringAsFixed(2)}%)',
+                        style: TextStyle(fontSize: 18, color: changeColor),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Graafiku info kast
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Column(
                         children: [
-                          const Text('6-Month Chart', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            chartLabel,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 10),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildInfoCol('High', '\$${highestPrice.toStringAsFixed(2)}', Colors.greenAccent),
-                              _buildInfoCol('Low', '\$${lowestPrice.toStringAsFixed(2)}', Colors.redAccent),
-                              _buildInfoCol('Range', '\$${(highestPrice - lowestPrice).toStringAsFixed(2)}', Colors.white),
+                              _buildInfoCol(
+                                'High',
+                                '\$${highestPrice.toStringAsFixed(2)}',
+                                Colors.greenAccent,
+                              ),
+                              _buildInfoCol(
+                                'Low',
+                                '\$${lowestPrice.toStringAsFixed(2)}',
+                                Colors.redAccent,
+                              ),
+                              _buildInfoCol(
+                                'Range',
+                                '\$${(highestPrice - lowestPrice).toStringAsFixed(2)}',
+                                Colors.white,
+                              ),
                             ],
                           ),
                         ],
@@ -109,14 +178,35 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   ),
 
                   const SizedBox(height: 20),
-                  
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: _rangeDays.keys.map((range) {
+                        final isSelected = selectedRange == range;
+                        return ChoiceChip(
+                          label: Text(range),
+                          selected: isSelected,
+                          onSelected: (_) => _setRange(range),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
                   // GRAAFIK
                   SizedBox(
                     height: 320,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: history.isEmpty
-                          ? const Center(child: Text('No historical data available'))
+                          ? const Center(
+                              child: Text('No historical data available'),
+                            )
                           : LineChart(
                               LineChartData(
                                 minY: minYVal,
@@ -124,22 +214,41 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                 gridData: const FlGridData(show: false),
                                 borderData: FlBorderData(show: false),
                                 titlesData: FlTitlesData(
-                                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  leftTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
                                   bottomTitles: AxisTitles(
                                     sideTitles: SideTitles(
                                       showTitles: true,
                                       reservedSize: 30,
-                                      interval: (history.length > 30 ? history.length / 5 : 5).toDouble(),
+                                      interval: () {
+                                        if (selectedRange == '1M') return 7.0;  
+                                        if (selectedRange == '6M') return 30.0; 
+                                        if (selectedRange == '1Y') return 60.0; 
+                                        return (history.length / 5).clamp(1.0, double.infinity); 
+                                      }(),
                                       getTitlesWidget: (value, meta) {
                                         int idx = value.toInt();
-                                        if (idx < 0 || idx >= history.length) return const SizedBox.shrink();
+                                        if (idx < 0 || idx >= history.length)
+                                          return const SizedBox.shrink();
                                         return SideTitleWidget(
                                           meta: meta,
                                           space: 8,
-                                          child: Text(DateFormat('MMM').format(history[idx].date),
-                                              style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                          child: Text(
+                                            DateFormat(
+                                              'MMM',
+                                            ).format(history[idx].date),
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
                                         );
                                       },
                                     ),
@@ -147,12 +256,24 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                 ),
                                 lineBarsData: [
                                   LineChartBarData(
-                                    spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.close)).toList(),
+                                    spots: history
+                                        .asMap()
+                                        .entries
+                                        .map(
+                                          (e) => FlSpot(
+                                            e.key.toDouble(),
+                                            e.value.close,
+                                          ),
+                                        )
+                                        .toList(),
                                     isCurved: true,
                                     color: Colors.blueAccent,
                                     barWidth: 3,
                                     dotData: const FlDotData(show: false),
-                                    belowBarData: BarAreaData(show: true, color: Colors.blueAccent.withOpacity(0.1)),
+                                    belowBarData: BarAreaData(
+                                      show: true,
+                                      color: Colors.blueAccent.withOpacity(0.1),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -161,18 +282,28 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   ),
 
                   const SizedBox(height: 12),
-                  
+
                   // Omadused (Holdings)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Your Holdings:'),
-                          Text('$ownedQuantity shares', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                          Text(
+                            '$ownedQuantity shares',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -187,17 +318,42 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: ownedQuantity > 0 ? Colors.red : Colors.grey[600]),
-                            onPressed: ownedQuantity > 0 ? () => TradeDialogs.showSellDialog(context, stockProvider, widget.symbol, currentPrice, ownedQuantity) : null,
-                            child: const Text('SELL', style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ownedQuantity > 0
+                                  ? Colors.red
+                                  : Colors.grey[600],
+                            ),
+                            onPressed: ownedQuantity > 0
+                                ? () => TradeDialogs.showSellDialog(
+                                    context,
+                                    stockProvider,
+                                    widget.symbol,
+                                    currentPrice,
+                                    ownedQuantity,
+                                  )
+                                : null,
+                            child: const Text(
+                              'SELL',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 20),
                         Expanded(
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                            onPressed: () => TradeDialogs.showBuyDialog(context, stockProvider, widget.symbol, currentPrice),
-                            child: const Text('BUY', style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: () => TradeDialogs.showBuyDialog(
+                              context,
+                              stockProvider,
+                              widget.symbol,
+                              currentPrice,
+                            ),
+                            child: const Text(
+                              'BUY',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
                       ],
@@ -213,7 +369,14 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     return Column(
       children: [
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: valColor)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: valColor,
+          ),
+        ),
       ],
     );
   }

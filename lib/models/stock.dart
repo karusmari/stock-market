@@ -11,25 +11,23 @@ class Stock {
     required this.lastUpdate,
   });
 
-  // See on maagia, mis muudab serveri vastuse Dart-i objektiks
+  // changing the factory constructor to match the new API response
   factory Stock.fromJson(String symbol, Map<String, dynamic> json) {
     return Stock(
       symbol: symbol,
-      price: (json['rate'] as num).toDouble(), // Kindlustame, et on double
+      price: (json['rate'] as num).toDouble(), 
       currency: json['currency'] ?? 'USD',
-      // Server saadab kuupäeva tekstina, muudame selle DateTime objektiks
+      // server sends date as a string, we need to parse it to DateTime
       lastUpdate: _parseDateTime(json['datetime']),
     );
   }
 
   static DateTime _parseDateTime(String dateStr) {
     try {
-      // Kuna server saadab formaadis "Thu, 02 May 2024...", 
-      // siis DateTime.parse ei pruugi seda alati otse süüa.
-      // Lihtsuse mõttes proovime esmalt otse:
+      // server sends date as a string, we need to parse it to DateTime
       return DateTime.parse(dateStr);
     } catch (e) {
-      // Kui otse ei saa, kasutame praegust aega, et äpp kokku ei jookseks
+      // If parsing fails, use the current time to prevent the app from crashing
       return DateTime.now();
     }
   }

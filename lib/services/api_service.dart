@@ -36,7 +36,7 @@ class ApiService {
 
   Future<List<HistoricalPoint>> fetchStockHistory(
     String symbol, {
-    int days = 180,
+    int days = 365,
     }) async {
       try {
         final now = DateTime.now();
