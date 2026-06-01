@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/stock.dart';
@@ -10,7 +11,7 @@ class StockProvider with ChangeNotifier {
 
   StreamSubscription? _updateSubscription;
 
-  // Meie valitud 20 aktsiat - need peavad vastama sample-stocks kaustaski olevate CSV failidele!
+  // the chosen 20 stocks
   final List<String> _symbols = [
     'AAME',
     'ABM',
@@ -34,15 +35,14 @@ class StockProvider with ChangeNotifier {
     'AXR',
   ];
 
-  Map<String, Stock> _stocks = {};
-  // Per-user state
-  Map<String, double> _balancesByUser = {}; // username -> balance
-  Map<String, Map<String, int>> _portfoliosByUser =
-      {}; // username -> (symbol -> qty)
-  Map<String, double> _previousPrices = {}; // Eelnevad hinnad, et näidata suund
-  Map<String, List<Transaction>> _transactionsByUser =
-      {}; // username -> transactions
+  final Map<String, Stock> _stocks = {};
+  final Map<String, double> _balancesByUser = {}; // username -> balance
+  final Map<String, Map<String, int>> _portfoliosByUser = {}; // username -> (symbol -> qty)
+  final Map<String, double> _previousPrices = {}; // Previous prices to show trend
+  final Map<String, List<Transaction>> _transactionsByUser = {}; // username -> transactions
   int _currentIndex = 0;
+
+  String _stateKey(String username) => 'state::$username';
 
   Map<String, Stock> get stocks => _stocks;
   Map<String, double> get previousPrices => _previousPrices;
@@ -66,7 +66,7 @@ class StockProvider with ChangeNotifier {
   }
 
   StockProvider() {
-    // Täidame mapi kohe alguses, et kõik 20 rida oleksid olemas
+    // filling the map from the beginning
     for (var symbol in _symbols) {
       _stocks[symbol] = Stock(
         symbol: symbol,
@@ -75,21 +75,49 @@ class StockProvider with ChangeNotifier {
         lastUpdate: DateTime.now(), 
       );
     }
+    // Try to restore per-user state if an active user was persisted (web hot reload)
+    try {
+      if (Hive.isBoxOpen('users')) {
+        final box = Hive.box('users');
+        final storedCurrent = box.get('__current_user');
+        if (storedCurrent is String && storedCurrent.isNotEmpty) {
+          _ensureUser(storedCurrent);
+        }
+      }
+    } catch (_) {}
+
     _startRealTimeUpdates();
   }
 
   // Ensure the user has an initialized entry
   void _ensureUser(String username) {
     // Use a shared 'users' box (opened at app startup) to persist per-user data.
-    Map? userData;
+    Map<String, dynamic>? userData;
     if (Hive.isBoxOpen('users')) {
       final box = Hive.box('users');
-      userData = box.get(username) as Map?;
+      final rawState = box.get(_stateKey(username));
+      if (rawState is String && rawState.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawState);
+          if (decoded is Map) {
+            userData = Map<String, dynamic>.from(decoded);
+          }
+        } catch (_) {
+          // Ignore malformed JSON and fallback to legacy storage.
+        }
+      }
+
+      if (userData == null) {
+        final legacy = box.get(username);
+        if (legacy is Map) {
+          userData = Map<String, dynamic>.from(legacy);
+        }
+      }
     }
 
     final storedBalance = userData != null
-        ? (userData['balance'] as double?)
-        : null;
+      ? (userData['balance'] as num?)?.toDouble()
+      : null;
     final storedPortfolio = userData != null
         ? (userData['portfolio'] as Map?)
         : null;
@@ -109,14 +137,44 @@ class StockProvider with ChangeNotifier {
       return <String, int>{};
     });
     _transactionsByUser.putIfAbsent(username, () {
-      if (storedTransactions != null) {
+      if (storedTransactions == null) {
+        return <Transaction>[];
+      }
+
+      final parsedTransactions = <Transaction>[];
+      for (final txData in storedTransactions) {
         try {
-          return List<Transaction>.from(storedTransactions.cast<Transaction>());
+          final map = Map<String, dynamic>.from(txData as Map);
+          final symbol = map['symbol'] as String?;
+          final quantity = map['quantity'] as num?;
+          final price = map['price'] as num?;
+          final type = map['type'] as String?;
+          final timestampRaw = map['timestamp'] as String?;
+          final timestamp =
+              timestampRaw != null ? DateTime.tryParse(timestampRaw) : null;
+
+          if (symbol == null ||
+              quantity == null ||
+              price == null ||
+              type == null ||
+              timestamp == null) {
+            continue;
+          }
+
+          parsedTransactions.add(
+            Transaction(
+              symbol: symbol,
+              quantity: quantity.toInt(),
+              price: price.toDouble(),
+              type: type,
+              timestamp: timestamp,
+            ),
+          );
         } catch (_) {
-          return <Transaction>[];
+          // Skip malformed rows but keep valid history entries.
         }
       }
-      return <Transaction>[];
+      return parsedTransactions;
     });
   }
 
@@ -124,7 +182,7 @@ class StockProvider with ChangeNotifier {
   void ensureUser(String username) => _ensureUser(username);
 
   // Buy for specific user
-  void buyStockFor(String username, String symbol, int quantity) {
+  Future<void> buyStockFor(String username, String symbol, int quantity) async {
     _ensureUser(username);
     double cost = _stocks[symbol]!.price * quantity;
     if (_balancesByUser[username]! >= cost) {
@@ -139,7 +197,7 @@ class StockProvider with ChangeNotifier {
         timestamp: DateTime.now(),
       );
       _transactionsByUser[username]!.add(tx);
-      _saveUserToStorage(username);
+      await _saveUserToStorage(username);
       notifyListeners();
       print(
         '[$username] Bought $quantity $symbol for \$${cost.toStringAsFixed(2)}. New balance: \$${_balancesByUser[username]!.toStringAsFixed(2)}',
@@ -148,7 +206,7 @@ class StockProvider with ChangeNotifier {
   }
 
   // Sell for specific user
-  void sellStockFor(String username, String symbol, int quantity) {
+  Future<void> sellStockFor(String username, String symbol, int quantity) async {
     _ensureUser(username);
     final portfolio = _portfoliosByUser[username]!;
     if (portfolio[symbol] != null && portfolio[symbol]! >= quantity) {
@@ -164,8 +222,7 @@ class StockProvider with ChangeNotifier {
       );
       _transactionsByUser[username]!.add(tx);
       if (portfolio[symbol] == 0) portfolio.remove(symbol);
-      _saveUserToStorage(username);
-      if (portfolio[symbol] == 0) portfolio.remove(symbol);
+      await _saveUserToStorage(username);
       notifyListeners();
       print(
         '[$username] Sold $quantity $symbol for \$${revenue.toStringAsFixed(2)}. New balance: \$${_balancesByUser[username]!.toStringAsFixed(2)}',
@@ -178,7 +235,7 @@ class StockProvider with ChangeNotifier {
   void _startRealTimeUpdates() {
     _updateSubscription = Stream.periodic(const Duration(milliseconds: 200))
         .listen((_) {
-          // Küsime korraga ainult 4 aktsiat, et server ellu jääks
+          // asking just 4 stocks at a time to avoid hitting API limits and to spread out the load
           for (int i = 0; i < 4; i++) {
             if (_currentIndex >= _symbols.length) _currentIndex = 0;
 
@@ -187,11 +244,10 @@ class StockProvider with ChangeNotifier {
 
             _currentIndex++;
           }
-          // Kuna me uuendame pidevalt, siis notifyListeners on juba _updateSingleStock sees
         });
   }
 
-  // Eraldi meetod ühe aktsia uuendamiseks
+  // updating a single stock - this is called every 200ms for 4 stocks
   Future<void> _updateSingleStock(String symbol) async {
     try {
       final updatedStock = await _apiService.fetchExchangeRate(symbol);
@@ -200,8 +256,6 @@ class StockProvider with ChangeNotifier {
       }
       _stocks[symbol] = updatedStock;
 
-      // notifyListeners() kutsumine siin võib olla liiga tihe (20 sümbolit x 5 korda = 100x sekundis!)
-      // Parem on kutsuda seda ainult siis, kui midagi tõesti muutus
       notifyListeners();
     } catch (e) {
       // Vaikne fail
@@ -209,16 +263,29 @@ class StockProvider with ChangeNotifier {
   }
 
   // Persist per-user state into Hive box
-  void _saveUserToStorage(String username) {
+  Future<void> _saveUserToStorage(String username) async {
     if (!Hive.isBoxOpen('users')) return;
     final box = Hive.box('users');
     try {
-      box.put(username, {
+      final rawTransactions = _transactionsByUser[username]?.map((tx) => {
+      'symbol': tx.symbol,
+      'quantity': tx.quantity,
+      'price': tx.price,
+      'type': tx.type,
+      'timestamp': tx.timestamp.toIso8601String(),
+    }).toList() ?? [];
+
+      final payload = {
         'balance': _balancesByUser[username],
         'portfolio': _portfoliosByUser[username],
-        'transactions': _transactionsByUser[username],
-      });
+        'transactions': rawTransactions,
+      };
+
+      await box.put(_stateKey(username), jsonEncode(payload));
+      await box.flush();
+      print("Data is saved successfully into Hive");
     } catch (e) {
+      print("Error saving data into Hive");
       // ignore persistence errors for now
     }
   }
@@ -226,7 +293,7 @@ class StockProvider with ChangeNotifier {
   @override
   void dispose() {
     _updateSubscription
-        ?.cancel(); // Väga tähtis: sulge voog, kui äpp kinni pannakse!
+        ?.cancel(); // in case provider is disposed, stop the updates to prevent memory leaks
     super.dispose();
   }
 }

@@ -50,6 +50,11 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, stockProvider, child) {
           final auth = Provider.of<AuthProvider>(context);
           final username = auth.currentUser ?? 'guest';
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+          stockProvider.ensureUser(username);
+          });
+          
           final stockList = stockProvider.stocks.values.toList();
 
           if (stockList.isEmpty) {
@@ -70,10 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Color priceColor = Colors.white;
               IconData trendIcon = Icons.remove;
               if (currentPrice > previousPrice) {
-                priceColor = Colors.greenAccent;
+                priceColor = const Color.fromARGB(255, 83, 158, 77);
                 trendIcon = Icons.trending_up;
               } else if (currentPrice < previousPrice) {
-                priceColor = Colors.redAccent;
+                priceColor = const Color.fromARGB(255, 231, 114, 114);
                 trendIcon = Icons.trending_down;
               }
 
@@ -115,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: ownedQuantity > 0
-                                        ? Colors.greenAccent
+                                        ? const Color.fromARGB(255, 83, 158, 77)
                                         : Colors.grey,
                                   ),
                                 ),
@@ -155,8 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: ownedQuantity > 0
-                                          ? Colors.redAccent
-                                          : Colors.grey[700],
+                                          ? const Color.fromARGB(255, 231, 114, 114)
+                                          : const Color.fromARGB(255, 100, 100, 100),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -185,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.greenAccent,
+                                      color: const Color.fromARGB(255, 83, 158, 77),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: const Text(

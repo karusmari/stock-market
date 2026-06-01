@@ -5,10 +5,9 @@ import '../models/historical_point.dart';
 import 'package:intl/intl.dart';
 
 class ApiService {
-  // localhosti aadress emulaatoris/simulaatoris on tavaliselt see
-  static const String baseUrl = 'http://127.0.0.1:5001';
+  static const String baseUrl = 'http://10.0.2.2:5001';
 
-  // 1. Küsime nimekirja kõigist aktsiatest
+  // asking the list of available stocks from the server (we have 20, but this makes it dynamic)
   Future<List<String>> fetchStocksList() async {
     final response = await http.get(Uri.parse('$baseUrl/stocks_list'));
     if (response.statusCode == 200) {
@@ -19,13 +18,13 @@ class ApiService {
     }
   }
 
-  // 2. Küsime ühe konkreetse aktsia hetkehindu
+  // asking for the current price of a specific stock
   Future<Stock> fetchExchangeRate(String symbol) async {
     final response = await http
         .get(Uri.parse('$baseUrl/exchange_rate/$symbol'))
         .timeout(
           const Duration(seconds: 1),
-        ); // Kui server ei vasta 1 sekundiga, katkestame päringu
+        ); // if the server doesn't respond within 1 second, we consider it a failure
 
     if (response.statusCode == 200) {
       return Stock.fromJson(symbol, json.decode(response.body));
@@ -34,6 +33,7 @@ class ApiService {
     }
   }
 
+  // fetch historical data for a stock - this is used in the detail screen to show the price history chart
   Future<List<HistoricalPoint>> fetchStockHistory(
     String symbol, {
     int days = 365,
@@ -54,18 +54,18 @@ class ApiService {
           if (data.containsKey('values') && data['values'] is List) {
             final List<dynamic> values = data['values'];
 
-            // OLULINE: Lisa 'en_US', et ta oskaks lugeda "Fri" ja "Nov"
-            // Kui intl pakett on lisatud, kasuta seda konstruktsiooni:
+            // using the same date format as the server to ensure correct parsing
             final DateFormat serverFormat = DateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", 'en_US');
 
             final List<HistoricalPoint> points = [];
 
             for (var item in values) {
               try {
-                // Puhastame stringi igaks juhuks .trim() abil
+                // cleaning the date string - sometimes there might be extra spaces or different formatting, so we trim it and ensure it's in the expected format
                 final String dateStr = item['date'].toString().trim();
                 
-                // Parsime kuupäeva
+                // parsing the date using the server's format - this is crucial for correct date handling, 
+                // especially if the server is in a different timezone or locale
                 final DateTime dt = serverFormat.parse(dateStr);
                 final double closePrice = (item['close'] as num?)?.toDouble() ?? 0.0;
 
@@ -74,8 +74,8 @@ class ApiService {
                   close: closePrice,
                 ));
               } catch (e) {
-                // Kui konkreetne rida ebaõnnestub, logime selle, aga jätkame teistega
-                print("Viga konkreetse punkti parsimisel: ${item['date']} -> $e");
+                // If a specific row fails to parse, we log it but continue with the rest
+                print("Error parsing specific point: ${item['date']} -> $e");
               }
             }
 
@@ -89,7 +89,7 @@ class ApiService {
         print('Error fetching history for $symbol: $e');
       }
 
-      return []; // Vea korral tagastame tühja listi
+      return []; // On error, we return an empty list
     }
 
   // Auth endpoints

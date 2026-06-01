@@ -88,8 +88,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         ? (priceChange / closes.first) * 100
         : 0.0;
     Color changeColor = priceChange >= 0
-        ? Colors.greenAccent
-        : Colors.redAccent;
+        ? const Color.fromARGB(255, 83, 158, 77)
+        : const Color.fromARGB(255, 231, 114, 114);
 
     double minYVal = lowestPrice * 0.98;
     double maxYVal = highestPrice * 1.02;
@@ -98,7 +98,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         : '$selectedRange Chart';
 
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.symbol} Detailid')),
+      appBar: AppBar(title: Text('${widget.symbol} Details')),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -158,12 +158,12 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                               _buildInfoCol(
                                 'High',
                                 '\$${highestPrice.toStringAsFixed(2)}',
-                                Colors.greenAccent,
+                                const Color.fromARGB(255, 83, 158, 77),
                               ),
                               _buildInfoCol(
                                 'Low',
                                 '\$${lowestPrice.toStringAsFixed(2)}',
-                                Colors.redAccent,
+                                const Color.fromARGB(255, 231, 114, 114),
                               ),
                               _buildInfoCol(
                                 'Range',
@@ -198,11 +198,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
                   const SizedBox(height: 12),
 
-                  // GRAAFIK
+                  // Graphics
                   SizedBox(
                     height: 320,
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                       child: history.isEmpty
                           ? const Center(
                               child: Text('No historical data available'),
@@ -228,22 +228,38 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                       showTitles: true,
                                       reservedSize: 30,
                                       interval: () {
-                                        if (selectedRange == '1M') return 7.0;  
-                                        if (selectedRange == '6M') return 30.0; 
-                                        if (selectedRange == '1Y') return 60.0; 
-                                        return (history.length / 5).clamp(1.0, double.infinity); 
+                                        if (history.isEmpty) return 1.0;
+                                        if (selectedRange == '1M') return 7.0; 
+                                        
+                                        double dynamicInterval = history.length / 5;
+                                        return dynamicInterval > 0 ? dynamicInterval : 1.0;
                                       }(),
                                       getTitlesWidget: (value, meta) {
                                         int idx = value.toInt();
-                                        if (idx < 0 || idx >= history.length)
+                                        if (idx < 0 || idx >= history.length) {
                                           return const SizedBox.shrink();
+                                      }
+
+                                      DateTime date = history[idx].date;
+                                      String formattedDate;
+
+                                      if (selectedRange == 'ALL') {
+                                        formattedDate = DateFormat('yyyy').format(date);
+                                      } else if (selectedRange == '1M') {
+                                        formattedDate = DateFormat('dd/MM').format(date);
+                                      } else {
+                                        formattedDate = DateFormat('MMM').format(date);
+                                      }
+                                        
                                         return SideTitleWidget(
                                           meta: meta,
                                           space: 8,
+                                          fitInside: SideTitleFitInsideData.fromTitleMeta(
+                                            meta,
+                                            distanceFromEdge: 0,
+                                          ),
                                           child: Text(
-                                            DateFormat(
-                                              'MMM',
-                                            ).format(history[idx].date),
+                                            formattedDate,
                                             style: const TextStyle(
                                               fontSize: 10,
                                               color: Colors.grey,
@@ -320,7 +336,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: ownedQuantity > 0
-                                  ? Colors.red
+                                  ? const Color.fromARGB(255, 231, 114, 114)
                                   : Colors.grey[600],
                             ),
                             onPressed: ownedQuantity > 0
@@ -342,7 +358,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: const Color.fromARGB(255, 83, 158, 77),
                             ),
                             onPressed: () => TradeDialogs.showBuyDialog(
                               context,

@@ -10,10 +10,19 @@ class WalletScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
-    final username = auth.currentUser ?? 'guest';
+
+    if (auth.currentUser == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final username = auth.currentUser;
 
     // derive initials for avatar
-    String initials = username.isNotEmpty
+    String initials = username!.isNotEmpty
         ? username
               .trim()
               .split(' ')
@@ -58,6 +67,10 @@ class WalletScreen extends StatelessWidget {
       ),
       body: Consumer2<StockProvider, AuthProvider>(
         builder: (context, stockProvider, auth, child) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            stockProvider.ensureUser(username);
+          });
+          
           final portfolio = stockProvider.portfolioFor(username);
           final stocks = stockProvider.stocks;
           final transactions = stockProvider.transactionsFor(username);
@@ -93,7 +106,7 @@ class WalletScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.greenAccent,
+                                  color:  const Color.fromARGB(255, 83, 158, 77),
                                 ),
                               ),
                             ],
@@ -201,7 +214,7 @@ class WalletScreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.greenAccent,
+                                      color: const Color.fromARGB(255, 83, 158, 77),
                                     ),
                                   ),
                                 ],
@@ -243,8 +256,8 @@ class WalletScreen extends StatelessWidget {
                         ...transactions.reversed.map((transaction) {
                           final isBuy = transaction.type == 'buy';
                           final color = isBuy
-                              ? Colors.greenAccent
-                              : Colors.redAccent;
+                              ? const Color.fromARGB(255, 83, 158, 77)
+                              : const Color.fromARGB(255, 231, 114, 114);
                           final icon = isBuy
                               ? Icons.arrow_downward
                               : Icons.arrow_upward;

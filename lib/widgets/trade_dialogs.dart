@@ -11,6 +11,7 @@ class TradeDialogs {
     double price,
   ) {
     int quantity = 1;
+    final TextEditingController textController = TextEditingController(text: '1');
 
     showDialog(
       context: context,
@@ -23,37 +24,41 @@ class TradeDialogs {
 
           return AlertDialog(
             title: const Text('Buy Stock'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('$symbol @ \$${price.toStringAsFixed(2)}/share'),
-                const SizedBox(height: 12),
-                const Divider(color: Colors.grey, thickness: 1),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Quantity:'),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: quantity > 1
-                              ? () => dialogSetState(() => quantity--)
-                              : null,
-                        ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8 > 400
+              ? 400
+              : MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$symbol @ \$${price.toStringAsFixed(2)}/share'),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.grey, thickness: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Quantity:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: quantity > 1
+                                ? () => dialogSetState(() => quantity--)
+                                : null,
+                          ),
                         SizedBox(
-                          width: 50,
+                          width: 60,
                           child: TextField(
                             textAlign: TextAlign.center,
                             keyboardType: TextInputType.number,
-                            controller: TextEditingController(
-                              text: quantity.toString(),
-                            ),
+                            controller: textController,
                             onChanged: (value) {
                               final parsed = int.tryParse(value) ?? 1;
                               if (parsed > 0) {
-                                dialogSetState(() => quantity = parsed);
+                                quantity = parsed;
+                                dialogSetState(() {});
                               }
                             },
                           ),
@@ -77,8 +82,8 @@ class TradeDialogs {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: canAfford
-                            ? Colors.greenAccent
-                            : Colors.redAccent,
+                            ? const Color.fromARGB(255, 83, 158, 77)
+                            : const Color.fromARGB(255, 231, 114, 114),
                       ),
                     ),
                   ],
@@ -96,6 +101,7 @@ class TradeDialogs {
                 ),
               ],
             ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -103,15 +109,24 @@ class TradeDialogs {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canAfford ? Colors.green : Colors.grey[600],
+                  backgroundColor: canAfford ? const Color.fromARGB(255, 83, 158, 77) : Colors.grey[600],
                 ),
                 onPressed: canAfford
-                    ? () {
-                        stockProvider.buyStockFor(username, symbol, quantity);
-                        Navigator.pop(context);
+                    ? () async {
+                        await stockProvider.buyStockFor(
+                          username,
+                          symbol,
+                          quantity,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       }
                     : null,
-                child: const Text('Buy'),
+                child: const Text(
+                  'BUY',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           );
@@ -130,6 +145,7 @@ class TradeDialogs {
     if (owned == 0) return;
 
     int quantity = 1;
+    final TextEditingController textController = TextEditingController(text: '1');
 
     showDialog(
       context: context,
@@ -141,7 +157,12 @@ class TradeDialogs {
 
           return AlertDialog(
             title: const Text('Sell Stock'),
-            content: Column(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+             content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8 > 400
+              ? 400
+              : MediaQuery.of(context).size.width * 0.8,
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('$symbol @ \$${price.toStringAsFixed(2)}/share'),
@@ -161,13 +182,11 @@ class TradeDialogs {
                               : null,
                         ),
                         SizedBox(
-                          width: 50,
+                          width: 60,
                           child: TextField(
                             textAlign: TextAlign.center,
                             keyboardType: TextInputType.number,
-                            controller: TextEditingController(
-                              text: quantity.toString(),
-                            ),
+                            controller: textController,
                             onChanged: (value) {
                               final parsed = int.tryParse(value) ?? 1;
                               if (parsed > 0 && parsed <= owned) {
@@ -196,7 +215,7 @@ class TradeDialogs {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.greenAccent,
+                        color: const Color.fromARGB(255, 83, 158, 77),
                       ),
                     ),
                   ],
@@ -211,16 +230,19 @@ class TradeDialogs {
                 ),
               ],
             ),
+          ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  stockProvider.sellStockFor(username, symbol, quantity);
-                  Navigator.pop(context);
+                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 231, 114, 114)),
+                onPressed: () async {
+                  await stockProvider.sellStockFor(username, symbol, quantity);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
                 child: const Text('Sell'),
               ),
