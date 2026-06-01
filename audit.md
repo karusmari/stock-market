@@ -51,11 +51,11 @@ Yes, symbols are removed from the portfolio when quantity reaches zero.
 Yes, proceeds are added back to the user's balance.
 ##### Try to see the historical data for any stock. You should be able to see the data
 either since company became public or for the past year.
-Partially. The current implementation fetches about 180 days of history, not the full year or since IPO.
+
 ###### Were you able to see the historical data of the stocks?
 Yes, historical data is fetched and displayed.
 ###### Can you see historical data in days, weeks, and months slice?
-No, there is currently no day/week/month slicing in the UI.
+
 ##### Ask the student which of the patterns, `BLoC`, `Pattern` or `MVC`, did they use? Ask
 them to explain the pattern that they used, and confirm if they implemented it correctly.
 Provider pattern is used for state management.
@@ -63,7 +63,7 @@ Provider pattern is used for state management.
 [Pattern](https://pub.dev/packages/provider)
 [MVC](https://pub.dev/packages/mvc_pattern)
 ###### Was the student able to explain his choice?
-Needs to be answered by the student during review.
+
 ###### Was the chosen pattern implemented correctly?
 Yes, the app uses `ChangeNotifier` providers for auth and stock state.
 ##### Logout and try everything you just did with a new account.

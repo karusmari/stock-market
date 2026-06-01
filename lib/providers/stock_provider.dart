@@ -14,25 +14,25 @@ class StockProvider with ChangeNotifier {
   // the chosen 20 stocks
   final List<String> _symbols = [
     'AAME',
-    'ABM',
-    'ABT',
+    'ADP',
+    'ALX',
     'ACU',
     'ADM',
-    'ADP',
-    'AE',
-    'AFL',
-    'AIM',
-    'AIT',
+    'FARM',
+    'HELE',
+    'IBM',
+    'PBI',
+    'RAD',
     'ALCO',
-    'ALX',
+    'TRV',
     'AP',
     'APA',
-    'APD',
-    'ASA',
-    'ASB',
-    'AVT',
-    'AWR',
-    'AXR',
+    'UVV',
+    'WELL',
+    'WGO',
+    'WMT',
+    'WRB',
+    'XRX',
   ];
 
   final Map<String, Stock> _stocks = {};
@@ -47,12 +47,10 @@ class StockProvider with ChangeNotifier {
   Map<String, Stock> get stocks => _stocks;
   Map<String, double> get previousPrices => _previousPrices;
 
-  // NOTE: per-user accessors
-  Map<String, int> portfolioFor(String username) =>
-      _portfoliosByUser[username] ?? {};
+  // Helper getters for user-specific data
+  Map<String, int> portfolioFor(String username) => _portfoliosByUser[username] ?? {};
   double balanceFor(String username) => _balancesByUser[username] ?? 0.0;
-  List<Transaction> transactionsFor(String username) =>
-      _transactionsByUser[username] ?? [];
+  List<Transaction> transactionsFor(String username) => _transactionsByUser[username] ?? [];
 
   double totalPortfolioValueFor(String username) {
     double stocksValue = 0;
