@@ -229,7 +229,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                       reservedSize: 30,
                                       interval: () {
                                         if (history.isEmpty) return 1.0;
-                                        if (selectedRange == '1M') return 7.0; 
+                                        if (selectedRange == '1M') return 6.0; 
                                         
                                         double dynamicInterval = history.length / 5;
                                         return dynamicInterval > 0 ? dynamicInterval : 1.0;

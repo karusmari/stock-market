@@ -70,14 +70,17 @@ class WalletScreen extends StatelessWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             stockProvider.ensureUser(username);
           });
-          
+
           final portfolio = stockProvider.portfolioFor(username);
           final stocks = stockProvider.stocks;
           final transactions = stockProvider.transactionsFor(username);
 
-          return SingleChildScrollView(
-            child: Column(
-              children: [
+          return ScrollConfiguration(
+            behavior: const _NoStretchScrollBehavior(),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                children: [
                 // Header container with side-by-side balance and portfolio cards
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -182,42 +185,52 @@ class WalletScreen extends StatelessWidget {
                           return Card(
                             color: Colors.grey[800],
                             margin: const EdgeInsets.only(bottom: 10),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        symbol,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/stock_detail',
+                                  arguments: symbol,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          symbol,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '$quantity shares @ \$${stock?.price.toStringAsFixed(2) ?? '0.00'}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '$quantity shares @ \$${stock?.price.toStringAsFixed(2) ?? '0.00'}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    '\$${totalValue.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color.fromARGB(255, 83, 158, 77),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                    Text(
+                                      '\$${totalValue.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color.fromARGB(255, 83, 158, 77),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -341,11 +354,25 @@ class WalletScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-              ],
+                ],
+              ),
             ),
           );
         },
       ),
     );
+  }
+}
+
+class _NoStretchScrollBehavior extends MaterialScrollBehavior {
+  const _NoStretchScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }

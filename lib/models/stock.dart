@@ -11,13 +11,12 @@ class Stock {
     required this.lastUpdate,
   });
 
-  // changing the factory constructor to match the new API response
+  // changing the MAP structure from the server to match the Stock model
   factory Stock.fromJson(String symbol, Map<String, dynamic> json) {
     return Stock(
       symbol: symbol,
-      price: (json['rate'] as num).toDouble(), 
+      price: (json['rate'] as num).toDouble(), // server sends price as 'rate', we convert it to double
       currency: json['currency'] ?? 'USD',
-      // server sends date as a string, we need to parse it to DateTime
       lastUpdate: _parseDateTime(json['datetime']),
     );
   }

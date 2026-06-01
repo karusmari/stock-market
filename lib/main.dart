@@ -10,17 +10,17 @@ import 'screens/stock_detail_screen.dart';
 import 'models/transaction.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  Hive.registerAdapter(TransactionAdapter());
-  await Hive.openBox('users');
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter bindings are initialized before any async operations (it is required for Hive initialization)
+  await Hive.initFlutter(); // Initialize Hive for Flutter
+  Hive.registerAdapter(TransactionAdapter()); // Register the Transaction adapter for more complicated data storage
+  await Hive.openBox('users'); // Open a box for user data (balances, portfolios, transactions)
 
   runApp(
-    MultiProvider(
+    MultiProvider( // Using MultiProvider to provide both AuthProvider and StockProvider to the widget tree
       providers: [
         ChangeNotifierProvider(create: (_) {
           final auth = AuthProvider();
-          auth.restoreSession();
+          auth.restoreSession(); // checking for existing session on app start
           return auth;
         }),
         ChangeNotifierProvider(create: (_) => StockProvider()),
