@@ -20,9 +20,10 @@ class StockDetailScreen extends StatefulWidget {
 class _StockDetailScreenState extends State<StockDetailScreen> {
   List<HistoricalPoint> history = [];
   bool isLoading = true;
-  String selectedRange = '1Y';
+  String selectedRange = '1W';
 
   static const Map<String, int> _rangeDays = {
+    '1W': 7,
     '1M': 30,
     '6M': 180,
     '1Y': 365,
@@ -133,7 +134,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Graafiku info kast
+                  // Key stats (High, Low, Range)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
@@ -229,6 +230,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                       reservedSize: 30,
                                       interval: () {
                                         if (history.isEmpty) return 1.0;
+                                        if (selectedRange == '1W') return 1.0;
                                         if (selectedRange == '1M') return 6.0; 
                                         
                                         double dynamicInterval = history.length / 5;
@@ -246,6 +248,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                       if (selectedRange == 'ALL') {
                                         formattedDate = DateFormat('yyyy').format(date);
                                       } else if (selectedRange == '1M') {
+                                        formattedDate = DateFormat('dd/MM').format(date);
+                                      } else if (selectedRange == '1W') {
                                         formattedDate = DateFormat('dd/MM').format(date);
                                       } else {
                                         formattedDate = DateFormat('MMM').format(date);
@@ -299,7 +303,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Omadused (Holdings)
+                  // Holdings
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -327,7 +331,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
                   const SizedBox(height: 12),
 
-                  // NUPUD
+                  // Trade buttons
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(

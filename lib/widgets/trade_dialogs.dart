@@ -11,7 +11,9 @@ class TradeDialogs {
     double price,
   ) {
     int quantity = 1;
-    final TextEditingController textController = TextEditingController(text: '1');
+    final TextEditingController textController = TextEditingController(
+      text: '1',
+    );
 
     showDialog(
       context: context,
@@ -24,11 +26,14 @@ class TradeDialogs {
 
           return AlertDialog(
             title: const Text('Buy Stock'),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
             content: SizedBox(
               width: MediaQuery.of(context).size.width * 0.8 > 400
-              ? 400
-              : MediaQuery.of(context).size.width * 0.8,
+                  ? 400
+                  : MediaQuery.of(context).size.width * 0.8,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -45,62 +50,68 @@ class TradeDialogs {
                           IconButton(
                             icon: const Icon(Icons.remove),
                             onPressed: quantity > 1
-                                ? () => dialogSetState(() => quantity--)
+                                ? () => dialogSetState(() {
+                                    quantity--;
+                                    textController.text = quantity.toString();
+                                  })
                                 : null,
                           ),
-                        SizedBox(
-                          width: 60,
-                          child: TextField(
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            controller: textController,
-                            onChanged: (value) {
-                              final parsed = int.tryParse(value) ?? 1;
-                              if (parsed > 0) {
-                                quantity = parsed;
-                                dialogSetState(() {});
-                              }
-                            },
+                          SizedBox(
+                            width: 60,
+                            child: TextField(
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              controller: textController,
+                              onChanged: (value) {
+                                final parsed = int.tryParse(value) ?? 1;
+                                if (parsed > 0) {
+                                  quantity = parsed;
+                                  dialogSetState(() {});
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () => dialogSetState(() => quantity++),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Cost:'),
-                    Text(
-                      '\$${totalCost.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: canAfford
-                            ? const Color.fromARGB(255, 83, 158, 77)
-                            : const Color.fromARGB(255, 231, 114, 114),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () => dialogSetState(() {
+                              quantity++;
+                              textController.text = quantity.toString();
+                            }),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Available:'),
-                    Text(
-                      '\$${stockProvider.balanceFor(username).toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Cost:'),
+                      Text(
+                        '\$${totalCost.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: canAfford
+                              ? const Color.fromARGB(255, 83, 158, 77)
+                              : const Color.fromARGB(255, 231, 114, 114),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Available:'),
+                      Text(
+                        '\$${stockProvider.balanceFor(username).toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -109,7 +120,9 @@ class TradeDialogs {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canAfford ? const Color.fromARGB(255, 83, 158, 77) : Colors.grey[600],
+                  backgroundColor: canAfford
+                      ? const Color.fromARGB(255, 83, 158, 77)
+                      : Colors.grey[600],
                 ),
                 onPressed: canAfford
                     ? () async {
@@ -123,10 +136,7 @@ class TradeDialogs {
                         }
                       }
                     : null,
-                child: const Text(
-                  'BUY',
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: const Text('BUY', style: TextStyle(color: Colors.white)),
               ),
             ],
           );
@@ -145,7 +155,9 @@ class TradeDialogs {
     if (owned == 0) return;
 
     int quantity = 1;
-    final TextEditingController textController = TextEditingController(text: '1');
+    final TextEditingController textController = TextEditingController(
+      text: '1',
+    );
 
     showDialog(
       context: context,
@@ -157,87 +169,105 @@ class TradeDialogs {
 
           return AlertDialog(
             title: const Text('Sell Stock'),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-             content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8 > 400
-              ? 400
-              : MediaQuery.of(context).size.width * 0.8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('$symbol @ \$${price.toStringAsFixed(2)}/share'),
-                const SizedBox(height: 12),
-                const Divider(color: Colors.grey, thickness: 1),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Quantity:'),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: quantity > 1
-                              ? () => dialogSetState(() => quantity--)
-                              : null,
-                        ),
-                        SizedBox(
-                          width: 60,
-                          child: TextField(
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            controller: textController,
-                            onChanged: (value) {
-                              final parsed = int.tryParse(value) ?? 1;
-                              if (parsed > 0 && parsed <= owned) {
-                                dialogSetState(() => quantity = parsed);
-                              }
-                            },
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: quantity < owned
-                              ? () => dialogSetState(() => quantity++)
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Revenue:'),
-                    Text(
-                      '\$${totalRevenue.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color.fromARGB(255, 83, 158, 77),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('You own:'),
-                    Text('$owned shares', style: const TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ],
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
             ),
-          ),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8 > 400
+                  ? 400
+                  : MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$symbol @ \$${price.toStringAsFixed(2)}/share'),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.grey, thickness: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Quantity:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: quantity > 1
+                                ? () => dialogSetState(() {
+                                    quantity--;
+                                    textController.text = quantity.toString();
+                                  })
+                                : null,
+                          ),
+                          SizedBox(
+                            width: 60,
+                            child: TextField(
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              controller: textController,
+                              onChanged: (value) {
+                                final parsed = int.tryParse(value) ?? 1;
+                                final clamped = parsed.clamp(1, owned);
+                                if (clamped != quantity) {
+                                  dialogSetState(() {
+                                    quantity = clamped;
+                                    textController.text = quantity.toString();
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: quantity < owned
+                                ? () => dialogSetState(() {
+                                    quantity++;
+                                    textController.text = quantity.toString();
+                                  })
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Revenue:'),
+                      Text(
+                        '\$${totalRevenue.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color.fromARGB(255, 83, 158, 77),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('You own:'),
+                      Text(
+                        '$owned shares',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 231, 114, 114)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 231, 114, 114),
+                ),
                 onPressed: () async {
                   await stockProvider.sellStockFor(username, symbol, quantity);
                   if (context.mounted) {
