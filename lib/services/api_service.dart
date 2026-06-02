@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/stock.dart';
 import '../models/historical_point.dart';
 import 'package:intl/intl.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:5001';
+  static const String baseUrl = 'http://127.0.0.1:5001';
 
   // asking the list of available stocks from the server (we have 20, but this makes it dynamic)
   Future<List<String>> fetchStocksList() async {
@@ -44,7 +45,7 @@ class ApiService {
         final endDate = now.toIso8601String().split('T').first;
 
         final url = Uri.parse('$baseUrl/hist/$symbol?start_date=$startDate&end_date=$endDate');
-        print('Querying history for $symbol with URL: $url');
+        debugPrint('Querying history for $symbol with URL: $url');
 
         final response = await http.get(url).timeout(const Duration(seconds: 5));
 
@@ -75,18 +76,16 @@ class ApiService {
                 ));
               } catch (e) {
                 // If a specific row fails to parse, we log it but continue with the rest
-                print("Error parsing specific point: ${item['date']} -> $e");
+                debugPrint("Error parsing specific point: ${item['date']} -> $e");
               }
             }
-
-            print('Successfully loaded ${points.length} points for $symbol');
             return points;
           }
         } else {
-          print('Server error: ${response.statusCode} ${response.body}');
+          debugPrint('Server error: ${response.statusCode} ${response.body}');
         }
       } catch (e) {
-        print('Error fetching history for $symbol: $e');
+        debugPrint('Error fetching history for $symbol: $e');
       }
 
       return []; // On error, we return an empty list
